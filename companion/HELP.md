@@ -34,6 +34,9 @@ Increase the volume, this could be assigned to a rotary control to make a volume
 
 Decrease the volume, this could be assigned to a rotary control to make a volume knob. The step (rate of change per rotation) can also be set.
 
+**Get Info**
+Request update to device info variables
+
 ## Presets
 
 - Volume Knob with rotate left and right
@@ -42,7 +45,7 @@ Decrease the volume, this could be assigned to a rotary control to make a volume
 None currently
 
 ## Variables
-Product Id, Firmware version, Host name, Friendly name, Domain name, Mix selected, Volume
+Product Id, Firmware version, Host name, Friendly name, Domain name, Mix selected (value), Mix selected (label), Volume
 
 ## Version 1.0.0
 The first release of the module
