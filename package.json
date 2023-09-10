@@ -1,0 +1,20 @@
+{
+	"name": "glensound-divine",
+	"version": "1.0.0",
+	"main": "index.js",
+	"type": "module",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bitfocus/companion-module-glensound-divine.git"
+	},
+	"license": "MIT",
+	"dependencies": {
+		"@companion-module/base": "~1.5.0"
+	},
+	"devDependencies": {
+		"@companion-module/tools": "~1.4.0"
+	}
+}
