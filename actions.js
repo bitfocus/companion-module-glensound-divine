@@ -69,9 +69,8 @@ export function updateActions() {
 
 	actions['set_mute'] = {
 		name: 'Mute',
-		options: [
-		],
-		callback: ({ options }) => {
+		options: [],
+		callback: () => {
 			if (this.volume != 0) {
 				// avoids losing the previous value if mute pressed more than once
 				this.unMute = this.volume
@@ -85,9 +84,8 @@ export function updateActions() {
 
 	actions['unset_mute'] = {
 		name: 'Unmute',
-		options: [
-		],
-		callback: ({ options }) => {
+		options: [],
+		callback: () => {
 			this.volume = this.unMute
 			this.log('debug', 'unmute: ' + this.volume)
 			var cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
@@ -108,14 +106,14 @@ export function updateActions() {
 			},
 		],
 		callback: ({ options }) => {
-			if ((this.volume + options.step_up) > 127) {
+			if (this.volume + options.step_up > 127) {
 				this.volume = 127
 			} else {
 				this.volume = this.volume + options.step_up
 			}
-				this.log('debug', 'vol: ' + this.volume)
-				var cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
-				this.sendMessage(cmd, '03')
+			this.log('debug', 'vol: ' + this.volume)
+			var cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
+			this.sendMessage(cmd, '03')
 		},
 	}
 
@@ -132,22 +130,21 @@ export function updateActions() {
 			},
 		],
 		callback: ({ options }) => {
-			if ((this.volume - options.step_down) < 0) {
+			if (this.volume - options.step_down < 0) {
 				this.volume = 0
 			} else {
 				this.volume = this.volume - options.step_down
 			}
-				this.log('debug', 'vol: ' + this.volume)
-				var cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
-				this.sendMessage(cmd, '03')
+			this.log('debug', 'vol: ' + this.volume)
+			var cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
+			this.sendMessage(cmd, '03')
 		},
 	}
 
 	actions['get_info'] = {
 		name: 'Get Info',
-		options: [
-		],
-		callback: ({ options }) => {
+		options: [],
+		callback: () => {
 			// get info has no command data
 			this.sendMessage(null, '05')
 			// temp for testing!
