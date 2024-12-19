@@ -7,8 +7,8 @@ export function updatePresets() {
 		type: 'button',
 		category: 'Volume',
 		name: 'Volume Knob',
-		options: { 
-			rotaryActions: true 
+		options: {
+			rotaryActions: true,
 		},
 		style: {
 			text: 'Volume',

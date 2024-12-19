@@ -4,3 +4,6 @@ package-lock.json
 .DS_Store
 /pkg
 /pkg.tgz
+.yarn/
+.vscode/
+DEBUG-*

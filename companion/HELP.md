@@ -49,3 +49,7 @@ Product Id, Firmware version, Host name, Friendly name, Domain name, Mix selecte
 
 ## Version 1.0.0
 The first release of the module
+
+## Version 1.1.0
+Allow connection via hostname
+Update dependencies
