@@ -20,10 +20,6 @@
 		"entrypoint": "../index.js"
 	},
 	"manufacturer": "Glensound",
-	"products": [ 
-		"Divine" 
-	],
-	"keywords": [
-		"Audio", "Speaker", "Monitoring", "DANTE", "AES 67", "Network Audio"
-	]
+	"products": ["Divine"],
+	"keywords": ["Audio", "Speaker", "Monitoring", "DANTE", "AES 67", "Network Audio"]
 }

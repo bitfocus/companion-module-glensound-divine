@@ -59,7 +59,7 @@ export function updateActions() {
 				default: 50,
 			},
 		],
-		callback:async ({ options }) => {
+		callback: async ({ options }) => {
 			this.volume = options.volume
 			this.log('debug', 'vol: ' + this.volume)
 			var cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
