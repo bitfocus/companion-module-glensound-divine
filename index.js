@@ -6,6 +6,8 @@ import { updateFeedbacks } from './feedback.js'
 import { updatePresets } from './presets.js'
 import { updateVariables } from './variables.js'
 import { upgradeScripts } from './upgrades.js'
+import PQueue from 'p-queue'
+const queue = new PQueue({ concurrency: 1, interval: 5, intervalCap: 1 })
 
 class GS_Divine extends InstanceBase {
 	constructor(internal) {
@@ -62,6 +64,7 @@ class GS_Divine extends InstanceBase {
 	}
 
 	async destroy() {
+		queue.clear()
 		if (this.timer) {
 			clearInterval(this.timer)
 			delete this.timer
@@ -265,6 +268,7 @@ class GS_Divine extends InstanceBase {
 	}
 
 	async configUpdated(config) {
+		queue.clear()
 		console.log('configUpdated')
 
 		let resetConnection = false
@@ -321,16 +325,18 @@ class GS_Divine extends InstanceBase {
 		}
 
 		if (message !== undefined) {
-			if (this.socket !== undefined) {
-				await this.socket
-					.send(this.hexStringToBuffer(message))
-					.then(() => {})
-					.catch((error) => {
-						this.log('warn', `Message send failed!\nMessage: ${message}\nError: ${JSON.stringify(error)}`)
-					})
-			} else {
-				this.log('warn', 'Socket not connected')
-			}
+			await queue.add(async () => {
+				if (this.socket !== undefined) {
+					await this.socket
+						.send(this.hexStringToBuffer(message))
+						.then(() => {})
+						.catch((error) => {
+							this.log('warn', `Message send failed!\nMessage: ${message}\nError: ${JSON.stringify(error)}`)
+						})
+				} else {
+					this.log('warn', 'Socket not connected')
+				}
+			})
 		}
 	}
 
