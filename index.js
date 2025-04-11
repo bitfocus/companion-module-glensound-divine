@@ -122,10 +122,10 @@ class GS_Divine extends InstanceBase {
 				this.log('error', 'Network error: ' + err.message)
 			})
 
-			this.socket.on('connect', () => {
+			this.socket.on('connect', async () => {
 				this.log('info', 'Connected')
 				// get info
-				this.sendMessage(null, '05')
+				await this.sendMessage(null, '05')
 				// poll every 5 seconds
 				this.timer = setInterval(this.dataPoller.bind(this), 5000)
 			})
@@ -288,7 +288,7 @@ class GS_Divine extends InstanceBase {
 		this.sendMessage(null, '05')
 	}
 
-	sendMessage(cmd, opcode) {
+	async sendMessage(cmd, opcode) {
 		if (this.config.controllerId.length != 8) {
 			this.log('warn', 'Invalid Controller Id! Please check module settings.')
 			return
@@ -322,7 +322,7 @@ class GS_Divine extends InstanceBase {
 
 		if (message !== undefined) {
 			if (this.socket !== undefined) {
-				this.socket
+				await this.socket
 					.send(this.hexStringToBuffer(message))
 					.then(() => {})
 					.catch((error) => {
@@ -352,10 +352,10 @@ class GS_Divine extends InstanceBase {
 		return Buffer.from(str, 'hex')
 	}
 
-	dataPoller() {
+	async dataPoller() {
 		if (this.socket !== undefined) {
 			// send getConfig poll request
-			this.sendMessage(null, '07')
+			await this.sendMessage(null, '07')
 		} else {
 			this.log('debug', 'dataPoller - Socket not connected')
 		}
