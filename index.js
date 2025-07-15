@@ -79,7 +79,7 @@ class GS_Divine extends InstanceBase {
 
 	async init(config) {
 		console.log('init GS')
-
+		process.title = this.label
 		this.config = config
 		this.volume = 0
 		this.unMute = 0
@@ -270,7 +270,7 @@ class GS_Divine extends InstanceBase {
 	async configUpdated(config) {
 		queue.clear()
 		console.log('configUpdated')
-
+		process.title = this.label
 		let resetConnection = false
 
 		if (this.config.host != config.host) {
