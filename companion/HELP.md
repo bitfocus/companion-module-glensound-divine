@@ -30,7 +30,7 @@ Set the volume to the value stored when the Mute action was last used
 
 Increase the volume, this could be assigned to a rotary control to make a volume knob. The step (rate of change per rotation) can also be set.
 
-**Volume Down** 
+**Volume Down**
 
 Decrease the volume, this could be assigned to a rotary control to make a volume knob. The step (rate of change per rotation) can also be set.
 
@@ -42,10 +42,18 @@ Request update to device info variables
 - Volume Knob with rotate left and right
 
 ## Feedbacks
+
 None currently
 
 ## Variables
+
 Product Id, Firmware version, Host name, Friendly name, Domain name, Mix selected (value), Mix selected (label), Volume
 
 ## Version 1.0.0
+
 The first release of the module
+
+## Version 1.1.0
+
+Allow connection via hostname
+Update dependencies

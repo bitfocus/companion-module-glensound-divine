@@ -6,6 +6,8 @@ import { updateFeedbacks } from './feedback.js'
 import { updatePresets } from './presets.js'
 import { updateVariables } from './variables.js'
 import { upgradeScripts } from './upgrades.js'
+import PQueue from 'p-queue'
+const queue = new PQueue({ concurrency: 1, interval: 5, intervalCap: 1 })
 
 class GS_Divine extends InstanceBase {
 	constructor(internal) {
@@ -30,9 +32,9 @@ class GS_Divine extends InstanceBase {
 			{
 				type: 'textinput',
 				id: 'host',
-				label: 'Device IP',
+				label: 'Device IP / Hostname',
 				width: 6,
-				regex: Regex.IP,
+				regex: Regex.HOSTNAME,
 			},
 			{
 				type: 'textinput',
@@ -47,7 +49,8 @@ class GS_Divine extends InstanceBase {
 				id: 'info',
 				width: 6,
 				label: 'Controller ID',
-				value: 'Each Glensound controller on the same network needs a unique ID. Unless you are running multiple controllers leave it at the Companion default (42495446). The ID must be 4 hex bytes.',
+				value:
+					'Each Glensound controller on the same network needs a unique ID. Unless you are running multiple controllers leave it at the Companion default (42495446). The ID must be 4 hex bytes.',
 			},
 			{
 				type: 'textinput',
@@ -61,6 +64,7 @@ class GS_Divine extends InstanceBase {
 	}
 
 	async destroy() {
+		queue.clear()
 		if (this.timer) {
 			clearInterval(this.timer)
 			delete this.timer
@@ -75,7 +79,7 @@ class GS_Divine extends InstanceBase {
 
 	async init(config) {
 		console.log('init GS')
-
+		process.title = this.label
 		this.config = config
 		this.volume = 0
 		this.unMute = 0
@@ -121,10 +125,10 @@ class GS_Divine extends InstanceBase {
 				this.log('error', 'Network error: ' + err.message)
 			})
 
-			this.socket.on('connect', () => {
+			this.socket.on('listening', async () => {
 				this.log('info', 'Connected')
-				// get info 
-				this.sendMessage(null, '05')
+				// get info
+				await this.sendMessage(null, '05')
 				// poll every 5 seconds
 				this.timer = setInterval(this.dataPoller.bind(this), 5000)
 			})
@@ -137,7 +141,6 @@ class GS_Divine extends InstanceBase {
 	}
 
 	processDeviceData(data) {
-
 		this.log('debug', 'processDeviceData')
 
 		// get info test data from specification
@@ -153,7 +156,7 @@ class GS_Divine extends InstanceBase {
 		// data = Array.from([71,83,32,67,116,114,108,0,56,0,10,0,248,0,0,0,4,51,9,0,22,0,0,0,2,0,0,0,0,0,5,7,40,0,0,0,0,0,0,0,6,2,2,0,0,1,7,7,254,0,50,0,0,0,0,0])
 
 		if (data != undefined) {
-			this.log('debug', 'length: ' + data.length + ' type: ' + typeof(data))
+			this.log('debug', 'length: ' + data.length + ' type: ' + typeof data)
 			this.log('debug', data)
 
 			if (data.length == 144) {
@@ -259,15 +262,15 @@ class GS_Divine extends InstanceBase {
 					this.setVariableValues({ mixSelectValue: mixSelect })
 				}
 			}
-
 		} else {
-			this.log('warn', 'no data to process!') 
+			this.log('warn', 'no data to process!')
 		}
 	}
 
 	async configUpdated(config) {
+		queue.clear()
 		console.log('configUpdated')
-
+		process.title = this.label
 		let resetConnection = false
 
 		if (this.config.host != config.host) {
@@ -285,17 +288,16 @@ class GS_Divine extends InstanceBase {
 			this.initUDP()
 		}
 
-		// get info 
+		// get info
 		this.sendMessage(null, '05')
 	}
 
-	sendMessage(cmd, opcode) {
-
+	async sendMessage(cmd, opcode) {
 		if (this.config.controllerId.length != 8) {
 			this.log('warn', 'Invalid Controller Id! Please check module settings.')
 			return
 		}
-		
+
 		this.log('debug', 'send opcode: ' + opcode + ' cmd: ' + cmd)
 
 		const gsHeader = '4753204374726C00' // GS Ctrl
@@ -305,7 +307,7 @@ class GS_Divine extends InstanceBase {
 			// set control
 			var flags = '03'
 			// exclusive = true, meters = false
-			var length = (16 + (cmd.length / 2)).toString(16).padStart(2, '0')
+			var length = (16 + cmd.length / 2).toString(16).padStart(2, '0')
 			var message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId + cmd
 			this.log('debug', 'Send control: ' + message)
 		} else if (opcode == '05') {
@@ -323,11 +325,18 @@ class GS_Divine extends InstanceBase {
 		}
 
 		if (message !== undefined) {
-			if (this.socket !== undefined) {
-				this.socket.send(this.hexStringToBuffer(message))
-			} else {
-				this.log('warn', 'Socket not connected')
-			}
+			await queue.add(async () => {
+				if (this.socket !== undefined) {
+					await this.socket
+						.send(this.hexStringToBuffer(message))
+						.then(() => {})
+						.catch((error) => {
+							this.log('warn', `Message send failed!\nMessage: ${message}\nError: ${JSON.stringify(error)}`)
+						})
+				} else {
+					this.log('warn', 'Socket not connected')
+				}
+			})
 		}
 	}
 
@@ -349,10 +358,10 @@ class GS_Divine extends InstanceBase {
 		return Buffer.from(str, 'hex')
 	}
 
-	dataPoller() {
+	async dataPoller() {
 		if (this.socket !== undefined) {
 			// send getConfig poll request
-			this.sendMessage(null, '07')
+			await this.sendMessage(null, '07')
 		} else {
 			this.log('debug', 'dataPoller - Socket not connected')
 		}
