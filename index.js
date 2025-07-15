@@ -125,7 +125,7 @@ class GS_Divine extends InstanceBase {
 				this.log('error', 'Network error: ' + err.message)
 			})
 
-			this.socket.on('connect', async () => {
+			this.socket.on('listening', async () => {
 				this.log('info', 'Connected')
 				// get info
 				await this.sendMessage(null, '05')
