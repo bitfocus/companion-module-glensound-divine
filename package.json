@@ -16,17 +16,17 @@
 	},
 	"license": "MIT",
 	"dependencies": {
-		"@companion-module/base": "~1.11.3",
+		"@companion-module/base": "~1.12.1",
 		"p-queue": "~8.1.0"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "~2.2.2",
-		"eslint": "^9.24.0",
-		"prettier": "^3.5.3"
+		"@companion-module/tools": "~2.3.0",
+		"eslint": "^9.31.0",
+		"prettier": "^3.6.2"
 	},
 	"engines": {
-		"node": "^22.13"
+		"node": "^22.15"
 	},
 	"prettier": "@companion-module/tools/.prettierrc.json",
-	"packageManager": "yarn@4.8.1"
+	"packageManager": "yarn@4.9.2"
 }
