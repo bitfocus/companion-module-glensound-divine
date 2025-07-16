@@ -166,22 +166,22 @@ class GS_Divine extends InstanceBase {
 
 					// Firmware
 					// var firmware = data[17].toString(16).padStart(2, '0') + data[16].toString(16).padStart(2, '0')
-					var firmware = data[17] + ' ' + data[16]
+					const firmware = data[17] + ' ' + data[16]
 					this.log('debug', 'firmware ' + firmware)
 					this.setVariableValues({ firmware: firmware })
-
+					let productId
 					// Product Id
 					if (data[24] == 49 && data[25] == 0) {
-						var productId = '49 (Divine)'
+						productId = '49 (Divine)'
 					} else {
-						var productId = 'Unknown'
+						productId = 'Unknown'
 					}
 					this.log('debug', 'productId ' + productId)
 					this.setVariableValues({ productId: productId })
 
 					// Host Name
-					var hostName = ''
-					for (var j = 40; j < 72; j++) {
+					let hostName = ''
+					for (let j = 40; j < 72; j++) {
 						// this.log('debug', j + ':' + data[j])
 						if (data[j] != 0) {
 							hostName = hostName + String.fromCharCode(data[j])
@@ -191,8 +191,8 @@ class GS_Divine extends InstanceBase {
 					this.setVariableValues({ hostName: hostName })
 
 					// Friendly Name
-					var friendlyName = ''
-					for (var j = 72; j < 104; j++) {
+					let friendlyName = ''
+					for (let j = 72; j < 104; j++) {
 						// this.log('debug', j + ':' + data[j])
 						if (data[j] != 0) {
 							friendlyName = friendlyName + String.fromCharCode(data[j])
@@ -202,8 +202,8 @@ class GS_Divine extends InstanceBase {
 					this.setVariableValues({ friendlyName: friendlyName })
 
 					// Domain Name
-					var domainName = ''
-					for (var j = 104; j < 136; j++) {
+					let domainName = ''
+					for (let j = 104; j < 136; j++) {
 						// this.log('debug', j + ':' + data[j])
 						if (data[j] != 0) {
 							domainName = domainName + String.fromCharCode(data[j])
@@ -218,7 +218,7 @@ class GS_Divine extends InstanceBase {
 				if (data[10] == 1) {
 					// opcode 1 (status)
 					this.log('debug', 'status data recevied')
-					var deviceVolume = data[37]
+					let deviceVolume = data[37]
 					this.log('debug', 'volume: ' + deviceVolume)
 					this.setVariableValues({ volume: deviceVolume })
 				}
@@ -230,9 +230,9 @@ class GS_Divine extends InstanceBase {
 					if (data[16] == 4) {
 						// divine report (type 4)
 						this.log('debug', 'divine report data recevied')
-						var mixSelect = data[47]
-						var mixSelectLabel = null
-						for (var i = 0; i < this.channels.length; i++) {
+						let mixSelect = data[47]
+						let mixSelectLabel = null
+						for (let i = 0; i < this.channels.length; i++) {
 							if (this.channels[i].id == mixSelect) {
 								mixSelectLabel = this.channels[i].label
 								break
@@ -249,9 +249,9 @@ class GS_Divine extends InstanceBase {
 				if (data[10] == 10) {
 					// opcode 10 (report)
 					this.log('debug', 'report data recevied')
-					var mixSelect = data[87]
-					var mixSelectLabel = null
-					for (var i = 0; i < this.channels.length; i++) {
+					let mixSelect = data[87]
+					let mixSelectLabel = null
+					for (let i = 0; i < this.channels.length; i++) {
 						if (this.channels[i].id == mixSelect) {
 							mixSelectLabel = this.channels[i].label
 							break
@@ -302,25 +302,25 @@ class GS_Divine extends InstanceBase {
 
 		const gsHeader = '4753204374726C00' // GS Ctrl
 		const multipacket = '00'
-
+		let flags, length, message
 		if (opcode == '03') {
 			// set control
-			var flags = '03'
+			flags = '03'
 			// exclusive = true, meters = false
-			var length = (16 + cmd.length / 2).toString(16).padStart(2, '0')
-			var message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId + cmd
+			length = (16 + cmd.length / 2).toString(16).padStart(2, '0')
+			message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId + cmd
 			this.log('debug', 'Send control: ' + message)
 		} else if (opcode == '05') {
 			// get info
-			var flags = '00'
-			var length = '10'
-			var message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId
+			flags = '00'
+			length = '10'
+			message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId
 			this.log('debug', 'Send getinfo: ' + message)
 		} else if (opcode == '07') {
 			// get config
-			var flags = '03'
-			var length = '10'
-			var message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId
+			flags = '03'
+			length = '10'
+			message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId
 			this.log('debug', 'Send getconfig: ' + message)
 		}
 
@@ -345,9 +345,9 @@ class GS_Divine extends InstanceBase {
 	}
 
 	asciiToHex(str) {
-		var arr1 = []
-		for (var n = 0, l = str.length; n < l; n++) {
-			var hex = Number(str.charCodeAt(n)).toString(16)
+		const arr1 = []
+		for (let n = 0, l = str.length; n < l; n++) {
+			const hex = Number(str.charCodeAt(n)).toString(16)
 			arr1.push(hex)
 		}
 		return arr1.join('')
