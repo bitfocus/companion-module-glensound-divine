@@ -221,29 +221,30 @@ class GS_Divine extends InstanceBase {
 					this.log('debug', 'status data recevied')
 					const potPos = data[36]
 					const deviceVolume = data[37]
-					const vol1 = -0.5 * data[0x1c]
-					const vol2 = -0.5 * data[0x1d]
-					const vol3 = -0.5 * data[0x1e]
-					const vol4 = -0.5 * data[0x1f]
-					const vol12 = -0.5 * data[0x20]
-					const vol34 = -0.5 * data[0x21]
-					const vol1234 = -0.5 * data[0x22]
-					const volOut = -0.5 * data[0x23]
+					const lvl1 = -0.5 * data[0x1c]
+					const lvl2 = -0.5 * data[0x1d]
+					const lvl3 = -0.5 * data[0x1e]
+					const lvl4 = -0.5 * data[0x1f]
+					const lvl12 = -0.5 * data[0x20]
+					const lvl34 = -0.5 * data[0x21]
+					const lvl1234 = -0.5 * data[0x22]
+					const lvlOut = -0.5 * data[0x23]
+					this.volume = deviceVolume
 					this.log(
 						'debug',
-						`Volume: ${deviceVolume}, Levels: ${vol1}, ${vol2}, ${vol3}, ${vol4}, ${vol12}, ${vol34}, ${vol1234}, ${volOut}, Pot Position: ${potPos}`,
+						`Volume: ${deviceVolume}, Levels: ${lvl1}, ${lvl2}, ${lvl3}, ${lvl4}, ${lvl12}, ${lvl34}, ${lvl1234}, ${lvlOut}, Pot Position: ${potPos}`,
 					)
 
 					this.setVariableValues({
 						volume: deviceVolume,
-						levelInput1: vol1,
-						levelInput2: vol2,
-						levelInput3: vol3,
-						levelInput4: vol4,
-						levelInput12: vol12,
-						levelInput34: vol34,
-						levelInput1234: vol1234,
-						levelOutput: volOut,
+						levelInput1: lvl1,
+						levelInput2: lvl2,
+						levelInput3: lvl3,
+						levelInput4: lvl4,
+						levelInput12: lvl12,
+						levelInput34: lvl34,
+						levelInput1234: lvl1234,
+						levelOutput: lvlOut,
 						potPosition: potPos,
 					})
 				}
