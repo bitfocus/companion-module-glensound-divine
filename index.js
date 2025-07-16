@@ -358,7 +358,7 @@ class GS_Divine extends InstanceBase {
 
 		if (message !== undefined) {
 			await queue.add(async () => {
-				if (this.socket !== undefined) {
+				if (this.socket !== undefined && !this.socket.isDestroyed) {
 					await this.socket
 						.send(this.hexStringToBuffer(message))
 						.then(() => {})
