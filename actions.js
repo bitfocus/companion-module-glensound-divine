@@ -50,7 +50,7 @@ export function updateActions() {
 			},
 		],
 		callback: async ({ options }, context) => {
-			const mixSel = await context.parseVariablesInString(options.mix_selection)
+			const mixSel = await context.parseVariablesInString(options.mix_enable)
 			if (!this.channels.includes(mixSel)) {
 				this.log('warn', `Invalid channel selection, value should be 01 - 07`)
 				return
