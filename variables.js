@@ -70,6 +70,10 @@ export function updateVariables() {
 			name: 'Pot Position',
 			variableId: 'potPosition',
 		},
+		{
+			name: 'Device Temperatire',
+			variableId: 'temp',
+		},
 	)
 
 	this.setVariableDefinitions(variables)

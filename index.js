@@ -9,6 +9,12 @@ import { upgradeScripts } from './upgrades.js'
 import PQueue from 'p-queue'
 const queue = new PQueue({ concurrency: 1, interval: 5, intervalCap: 1 })
 
+function readUint8AsTwosComplement(uint8Value) {
+	const uint8Array = new Uint8Array([uint8Value])
+	const int8Array = new Int8Array(uint8Array.buffer)
+	return Number(int8Array[0])
+}
+
 class GS_Divine extends InstanceBase {
 	constructor(internal) {
 		super(internal)
@@ -229,10 +235,11 @@ class GS_Divine extends InstanceBase {
 					const lvl34 = -0.5 * data[0x21]
 					const lvl1234 = -0.5 * data[0x22]
 					const lvlOut = -0.5 * data[0x23]
+					const temp = 0.5 * readUint8AsTwosComplement(data[38]) + 44
 					this.volume = deviceVolume
 					this.log(
 						'debug',
-						`Volume: ${deviceVolume}, Levels: ${lvl1}, ${lvl2}, ${lvl3}, ${lvl4}, ${lvl12}, ${lvl34}, ${lvl1234}, ${lvlOut}, Pot Position: ${potPos}`,
+						`Volume: ${deviceVolume}, Levels: ${lvl1}, ${lvl2}, ${lvl3}, ${lvl4}, ${lvl12}, ${lvl34}, ${lvl1234}, ${lvlOut}, Pot Position: ${potPos}, Temperature: ${temp}`,
 					)
 
 					this.setVariableValues({
@@ -246,6 +253,7 @@ class GS_Divine extends InstanceBase {
 						levelInput1234: lvl1234,
 						levelOutput: lvlOut,
 						potPosition: potPos,
+						temp: temp,
 					})
 				}
 			}

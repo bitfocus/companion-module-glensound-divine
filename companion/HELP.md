@@ -47,7 +47,7 @@ None currently
 
 ## Variables
 
-Product Id, Firmware version, Host name, Friendly name, Domain name, Mix selected (value), Mix selected (label), Volume, Input Levels, Pot Position
+Product Id, Firmware version, Host name, Friendly name, Domain name, Mix selected (value), Mix selected (label), Volume, Input Levels, Output Level, Pot Position, Device Temperature
 
 ## Version 1.0.0
 
@@ -55,7 +55,7 @@ The first release of the module
 
 ## Version 1.1.0
 
-Add variables: Input Levels, Pot Position
+Add variables: Input Levels, Output Level, Pot Position, Device Temperature
 Parse variables for channel in Mix Selection, Mix Enable
 Fix: Module init and device polling
 Allow connection via hostname
