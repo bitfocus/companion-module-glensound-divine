@@ -56,6 +56,7 @@ The first release of the module
 ## Version 1.1.0
 
 Add variables: Input Levels, Pot Position
+Parse variables for channel in Mix Selection, Mix Enable
 Fix: Module init and device polling
 Allow connection via hostname
 Update dependencies
