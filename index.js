@@ -126,7 +126,7 @@ class GS_Divine extends InstanceBase {
 			})
 
 			this.socket.on('listening', async () => {
-				this.log('info', 'Connected')
+				this.log('info', 'Listening')
 				// get info
 				await this.sendMessage(null, '05')
 				// poll every 5 seconds
