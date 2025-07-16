@@ -168,7 +168,6 @@ class GS_Divine extends InstanceBase {
 					// var firmware = data[17].toString(16).padStart(2, '0') + data[16].toString(16).padStart(2, '0')
 					const firmware = data[17] + ' ' + data[16]
 					this.log('debug', 'firmware ' + firmware)
-					this.setVariableValues({ firmware: firmware })
 					let productId
 					// Product Id
 					if (data[24] == 49 && data[25] == 0) {
@@ -177,7 +176,6 @@ class GS_Divine extends InstanceBase {
 						productId = 'Unknown'
 					}
 					this.log('debug', 'productId ' + productId)
-					this.setVariableValues({ productId: productId })
 
 					// Host Name
 					let hostName = ''
@@ -188,7 +186,6 @@ class GS_Divine extends InstanceBase {
 						}
 					}
 					this.log('debug', 'hostName ' + hostName)
-					this.setVariableValues({ hostName: hostName })
 
 					// Friendly Name
 					let friendlyName = ''
@@ -199,8 +196,6 @@ class GS_Divine extends InstanceBase {
 						}
 					}
 					this.log('debug', 'friendlyName ' + friendlyName)
-					this.setVariableValues({ friendlyName: friendlyName })
-
 					// Domain Name
 					let domainName = ''
 					for (let j = 104; j < 136; j++) {
@@ -210,7 +205,13 @@ class GS_Divine extends InstanceBase {
 						}
 					}
 					this.log('debug', 'domainName ' + domainName)
-					this.setVariableValues({ domainName: domainName })
+					this.setVariableValues({
+						firmware: firmware,
+						productId: productId,
+						hostName: hostName,
+						friendlyName: friendlyName,
+						domainName: domainName,
+					})
 				}
 			}
 
@@ -218,9 +219,33 @@ class GS_Divine extends InstanceBase {
 				if (data[10] == 1) {
 					// opcode 1 (status)
 					this.log('debug', 'status data recevied')
-					let deviceVolume = data[37]
-					this.log('debug', 'volume: ' + deviceVolume)
-					this.setVariableValues({ volume: deviceVolume })
+					const potPos = data[36]
+					const deviceVolume = data[37]
+					const vol1 = -0.5 * data[0x1c]
+					const vol2 = -0.5 * data[0x1d]
+					const vol3 = -0.5 * data[0x1e]
+					const vol4 = -0.5 * data[0x1f]
+					const vol12 = -0.5 * data[0x20]
+					const vol34 = -0.5 * data[0x21]
+					const vol1234 = -0.5 * data[0x22]
+					const volOut = -0.5 * data[0x23]
+					this.log(
+						'debug',
+						`Volume: ${deviceVolume}, Levels: ${vol1}, ${vol2}, ${vol3}, ${vol4}, ${vol12}, ${vol34}, ${vol1234}, ${volOut}, Pot Position: ${potPos}`,
+					)
+
+					this.setVariableValues({
+						volume: deviceVolume,
+						levelInput1: vol1,
+						levelInput2: vol2,
+						levelInput3: vol3,
+						levelInput4: vol4,
+						levelInput12: vol12,
+						levelInput34: vol34,
+						levelInput1234: vol1234,
+						levelOutput: volOut,
+						potPosition: potPos,
+					})
 				}
 			}
 
@@ -239,8 +264,7 @@ class GS_Divine extends InstanceBase {
 							}
 						}
 						this.log('debug', 'mix select: ' + mixSelect + ' label: ' + mixSelectLabel)
-						this.setVariableValues({ mixSelectLabel: mixSelectLabel })
-						this.setVariableValues({ mixSelectValue: mixSelect })
+						this.setVariableValues({ mixSelectValue: mixSelect, mixSelectLabel: mixSelectLabel })
 					}
 				}
 			}
@@ -258,8 +282,7 @@ class GS_Divine extends InstanceBase {
 						}
 					}
 					this.log('debug', 'mix select: ' + mixSelect + ' label: ' + mixSelectLabel)
-					this.setVariableValues({ mixSelectLabel: mixSelectLabel })
-					this.setVariableValues({ mixSelectValue: mixSelect })
+					this.setVariableValues({ mixSelectValue: mixSelect, mixSelectLabel: mixSelectLabel })
 				}
 			}
 		} else {

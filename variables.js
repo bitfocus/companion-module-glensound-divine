@@ -34,6 +34,42 @@ export function updateVariables() {
 			name: 'Volume',
 			variableId: 'volume',
 		},
+		{
+			name: 'Level: Input 1',
+			variableId: 'levelInput1',
+		},
+		{
+			name: 'Level: Input 2',
+			variableId: 'levelInput2',
+		},
+		{
+			name: 'Level: Input 3',
+			variableId: 'levelInput3',
+		},
+		{
+			name: 'Level: Input 4',
+			variableId: 'levelInput4',
+		},
+		{
+			name: 'Level: Input 1+2',
+			variableId: 'levelInput12',
+		},
+		{
+			name: 'Level: Input 3+4',
+			variableId: 'levelInput34',
+		},
+		{
+			name: 'Level: Input 1+2+3+4',
+			variableId: 'levelInput1234',
+		},
+		{
+			name: 'Level: Output',
+			variableId: 'levelOutput',
+		},
+		{
+			name: 'Pot Position',
+			variableId: 'potPosition',
+		},
 	)
 
 	this.setVariableDefinitions(variables)
