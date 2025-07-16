@@ -16,7 +16,7 @@ export function updateActions() {
 		],
 		callback: async ({ options }, context) => {
 			const mixSel = await context.parseVariablesInString(options.mix_selection)
-			if (!this.channels.includes(mixSel)) {
+			if (!this.channels.map((channel) => channel.id).includes(mixSel)) {
 				this.log('warn', `Invalid channel selection, value should be 01 - 07`)
 				return
 			}
@@ -51,7 +51,7 @@ export function updateActions() {
 		],
 		callback: async ({ options }, context) => {
 			const mixSel = await context.parseVariablesInString(options.mix_enable)
-			if (!this.channels.includes(mixSel)) {
+			if (!this.channels.map((channel) => channel.id).includes(mixSel)) {
 				this.log('warn', `Invalid channel selection, value should be 01 - 07`)
 				return
 			}
