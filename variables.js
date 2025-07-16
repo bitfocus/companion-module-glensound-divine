@@ -71,7 +71,7 @@ export function updateVariables() {
 			variableId: 'potPosition',
 		},
 		{
-			name: 'Device Temperatire',
+			name: 'Device Temperature (C)',
 			variableId: 'temp',
 		},
 	)
