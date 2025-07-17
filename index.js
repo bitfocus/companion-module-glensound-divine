@@ -66,6 +66,13 @@ class GS_Divine extends InstanceBase {
 				default: '42495446',
 				regex: '/^[abcdefABCDEF0123456789]{8}$/',
 			},
+			{
+				type: 'checkbox',
+				id: 'fastMeters',
+				label: 'Fast Meters',
+				width: 6,
+				default: false,
+			},
 		]
 	}
 
@@ -347,7 +354,7 @@ class GS_Divine extends InstanceBase {
 		let flags, length, message
 		if (opcode == '03') {
 			// set control
-			flags = '03'
+			flags = this.config.fastMeters ? '01' : '03'
 			// exclusive = true, meters = false
 			length = (16 + cmd.length / 2).toString(16).padStart(2, '0')
 			message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId + cmd
@@ -360,7 +367,7 @@ class GS_Divine extends InstanceBase {
 			this.log('debug', 'Send getinfo: ' + message)
 		} else if (opcode == '07') {
 			// get config
-			flags = '03'
+			flags = this.config.fastMeters ? '01' : '03'
 			length = '10'
 			message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId
 			this.log('debug', 'Send getconfig: ' + message)
