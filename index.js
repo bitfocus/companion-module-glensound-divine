@@ -64,7 +64,7 @@ class GS_Divine extends InstanceBase {
 				label: 'Controller ID',
 				width: 6,
 				default: '42495446',
-				regex: '/^[abcdefABCDEF0123456789]*$/',
+				regex: '/^[abcdefABCDEF0123456789]{8}$/',
 			},
 		]
 	}
@@ -292,6 +292,16 @@ class GS_Divine extends InstanceBase {
 					}
 					this.log('debug', 'mix select: ' + mixSelect + ' label: ' + mixSelectLabel)
 					this.setVariableValues({ mixSelectValue: mixSelect, mixSelectLabel: mixSelectLabel })
+				}
+			}
+
+			if (data.length == 24) {
+				if (data[10] == 6) {
+					this.log('debug', 'Config data recevied')
+					this.log(
+						'info',
+						`Sequence #: ${data[12]}, Device ID: ${data[13].toString(16) + data[14].toString(16) + data[15].toString(16)}\nStatus IP (if in shared mode): ${data[16]}.${data[17]}.${data[18]}.${data[19]} Port (if in shared mode): ${data[20] * 256 + data[21]}\nExclusive: ${Boolean(data[11] & 1)}, Password Valid: ${Boolean(data[11] & 4)}, Access Granted: ${Boolean(data[11] & 8)}`,
+					)
 				}
 			}
 		} else {
