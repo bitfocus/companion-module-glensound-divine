@@ -48,7 +48,7 @@ class GS_Divine extends InstanceBase {
 				label: 'Device Port',
 				width: 6,
 				default: '41161',
-				regex: Regex.Port,
+				regex: Regex.PORT,
 			},
 			{
 				type: 'static-text',
