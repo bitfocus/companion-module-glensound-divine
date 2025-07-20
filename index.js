@@ -107,6 +107,7 @@ class GS_Divine extends InstanceBase {
 			{ id: '07', label: 'Channels 1-4' },
 		]
 		this.levels = new Map()
+		this.indicators = new Map()
 
 		console.log(this.config)
 
@@ -234,7 +235,9 @@ class GS_Divine extends InstanceBase {
 					// opcode 1 (status)
 					this.log('debug', 'status data recevied')
 					const potPos = data[36]
+					this.indicators.set('pot', potPos)
 					const deviceVolume = data[37]
+					this.indicators.set('vol', deviceVolume)
 					const lvl1 = -0.5 * data[0x1c]
 					this.levels.set('01', lvl1)
 					const lvl2 = -0.5 * data[0x1d]
@@ -252,6 +255,7 @@ class GS_Divine extends InstanceBase {
 					const lvlOut = -0.5 * data[0x23]
 					this.levels.set('08', lvlOut)
 					const temp = 0.5 * readUint8AsTwosComplement(data[38]) + 44
+					this.indicators.set('temp', temp)
 					this.volume = deviceVolume
 					this.log(
 						'debug',
@@ -271,7 +275,7 @@ class GS_Divine extends InstanceBase {
 						potPosition: potPos,
 						temp: temp,
 					})
-					this.checkFeedbacks('Meter')
+					this.checkFeedbacks('Meter', 'Indicator')
 				}
 			}
 
@@ -332,12 +336,13 @@ class GS_Divine extends InstanceBase {
 		process.title = this.label
 		let resetConnection = false
 
-		if (this.config.host != config.host) {
+		if (this.config.host != config.host || this.config.port != config.port) {
 			resetConnection = true
 		}
 
 		this.config = config
-		this.levels = new Map()
+		this.levels.clear()
+		this.indicators.clear()
 		this.updateActions()
 		this.updateVariables()
 		this.updateFeedbacks()
@@ -418,11 +423,11 @@ class GS_Divine extends InstanceBase {
 	}
 
 	async dataPoller() {
-		if (this.socket !== undefined) {
+		if (this.socket !== undefined && !this.socket.isDestroyed) {
 			// send getConfig poll request
 			await this.sendMessage(null, '07')
 		} else {
-			this.log('debug', 'dataPoller - Socket not connected')
+			this.log('debug', 'dataPoller - Socket not open')
 		}
 	}
 }

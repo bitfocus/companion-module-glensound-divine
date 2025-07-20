@@ -43,6 +43,9 @@ Request update to device info variables
 
 ## Feedbacks
 
+**Indicator**
+Position indicator
+
 **Meter**
 Level Meter advanced feedback
 
@@ -56,10 +59,10 @@ The first release of the module
 
 ## Version 1.1.0
 
-Add variables: Input Levels, Output Level, Pot Position, Device Temperature
-Add: Meter Feedback
-Fast Meters config option
-Parse variables for channel in Mix Selection, Mix Enable
+Feat: Input Levels, Output Level, Pot Position, Device Temperature variables
+Feat: Indicator, Meter Feedback
+Feat: Fast Meters config option
+Feat: Parse variables for channel in Mix Selection, Mix Enable
 Fix: Module init and device polling
 Allow connection via hostname
 Minor fixes
