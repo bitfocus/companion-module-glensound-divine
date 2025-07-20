@@ -175,33 +175,33 @@ export function updateFeedbacks() {
 			switch (position) {
 				case 'left':
 					ofsX1 = padding
-					ofsY1 = 5
+					ofsY1 = 4
 					bWidth = 6
-					bLength = feedback.image.height - ofsY1 * 2
+					bLength = feedback.image.height - ofsY1 * 2 - 2
 					ofsX2 = ofsX1 + bWidth + 1
 					ofsY2 = ofsY1
 					break
 				case 'right':
-					ofsY1 = 5
+					ofsY1 = 4
 					bWidth = 6
-					bLength = feedback.image.height - ofsY1 * 2
+					bLength = feedback.image.height - ofsY1 * 2 - 2
 					ofsX2 = feedback.image.width - bWidth - padding
 					ofsX1 = ofsX2
 					ofsY2 = ofsY1
 					break
 				case 'top':
-					ofsX1 = 5
+					ofsX1 = 4
 					ofsY1 = padding
 					bWidth = 7
-					bLength = feedback.image.width - ofsX1 * 2
+					bLength = feedback.image.width - ofsX1 * 2 - 2
 					ofsX2 = ofsX1
 					ofsY2 = ofsY1 + bWidth + 1
 					break
 				case 'bottom':
-					ofsX1 = 5
+					ofsX1 = 4
 					bWidth = 7
 					ofsY2 = feedback.image.height - bWidth - padding
-					bLength = feedback.image.width - ofsX1 * 2
+					bLength = feedback.image.width - ofsX1 * 2 - 2
 					ofsX2 = ofsX1
 					ofsY1 = ofsY2
 			}
