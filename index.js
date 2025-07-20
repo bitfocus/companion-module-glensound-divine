@@ -106,6 +106,7 @@ class GS_Divine extends InstanceBase {
 			{ id: '06', label: 'Channels 3-4' },
 			{ id: '07', label: 'Channels 1-4' },
 		]
+		this.levels = new Map()
 
 		console.log(this.config)
 
@@ -235,13 +236,21 @@ class GS_Divine extends InstanceBase {
 					const potPos = data[36]
 					const deviceVolume = data[37]
 					const lvl1 = -0.5 * data[0x1c]
+					this.levels.set('01', lvl1)
 					const lvl2 = -0.5 * data[0x1d]
+					this.levels.set('02', lvl2)
 					const lvl3 = -0.5 * data[0x1e]
+					this.levels.set('03', lvl3)
 					const lvl4 = -0.5 * data[0x1f]
+					this.levels.set('04', lvl4)
 					const lvl12 = -0.5 * data[0x20]
+					this.levels.set('05', lvl12)
 					const lvl34 = -0.5 * data[0x21]
+					this.levels.set('06', lvl34)
 					const lvl1234 = -0.5 * data[0x22]
+					this.levels.set('07', lvl1234)
 					const lvlOut = -0.5 * data[0x23]
+					this.levels.set('08', lvlOut)
 					const temp = 0.5 * readUint8AsTwosComplement(data[38]) + 44
 					this.volume = deviceVolume
 					this.log(
@@ -262,6 +271,7 @@ class GS_Divine extends InstanceBase {
 						potPosition: potPos,
 						temp: temp,
 					})
+					this.checkFeedbacks('Meter')
 				}
 			}
 
@@ -327,7 +337,7 @@ class GS_Divine extends InstanceBase {
 		}
 
 		this.config = config
-
+		this.levels = new Map()
 		this.updateActions()
 		this.updateVariables()
 		this.updateFeedbacks()
