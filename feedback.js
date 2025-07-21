@@ -127,7 +127,7 @@ export function updateFeedbacks() {
 				barLength: bLength,
 				barWidth: bWidth,
 				type: position == 'left' || position == 'right' ? 'vertical' : 'horizontal',
-				value: bVal(1 * (this.levels.get(chan) ?? -100)),
+				value: bVal(this.levels.get(chan) ?? -100),
 				offsetX: ofsX1,
 				offsetY: ofsY1,
 				opacity: 255,
