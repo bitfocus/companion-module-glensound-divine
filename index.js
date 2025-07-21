@@ -1,6 +1,6 @@
 // Glensound Divine
 
-import { InstanceBase, Regex, runEntrypoint, UDPHelper } from '@companion-module/base'
+import { InstanceBase, InstanceStatus, Regex, runEntrypoint, UDPHelper } from '@companion-module/base'
 import { updateActions } from './actions.js'
 import { updateFeedbacks } from './feedback.js'
 import { updatePresets } from './presets.js'
@@ -8,6 +8,7 @@ import { updateVariables } from './variables.js'
 import { upgradeScripts } from './upgrades.js'
 import PQueue from 'p-queue'
 const queue = new PQueue({ concurrency: 1, interval: 5, intervalCap: 1 })
+const MessageTimeOut = 10000
 
 function readUint8AsTwosComplement(uint8Value) {
 	const uint8Array = new Uint8Array([uint8Value])
@@ -23,6 +24,8 @@ class GS_Divine extends InstanceBase {
 		this.updateFeedbacks = updateFeedbacks.bind(this)
 		this.updatePresets = updatePresets.bind(this)
 		this.updateVariables = updateVariables.bind(this)
+		this.status = InstanceStatus.Connecting
+		this.updateStatus(this.status)
 	}
 
 	getConfigFields() {
@@ -78,6 +81,7 @@ class GS_Divine extends InstanceBase {
 
 	async destroy() {
 		queue.clear()
+		if (this.timeout) clearTimeout(this.timeout)
 		if (this.timer) {
 			clearInterval(this.timer)
 			delete this.timer
@@ -133,7 +137,9 @@ class GS_Divine extends InstanceBase {
 			this.socket = new UDPHelper(this.config.host, this.config.port)
 
 			this.socket.on('status_change', (status, message) => {
+				if (this.status == status) return
 				this.updateStatus(status, message)
+				this.status = status
 			})
 
 			this.socket.on('error', (err) => {
@@ -146,11 +152,16 @@ class GS_Divine extends InstanceBase {
 				await this.sendMessage(null, '05')
 				// poll every 5 seconds
 				this.timer = setInterval(this.dataPoller.bind(this), 5000)
+				this.startTimeOut()
 			})
 
 			this.socket.on('data', (chunk) => {
 				this.log('debug', 'Data received')
 				this.processDeviceData(chunk)
+				this.startTimeOut()
+				if (this.status == InstanceStatus.Ok) return
+				this.status = InstanceStatus.Ok
+				this.updateStatus(this.status)
 			})
 		}
 	}
@@ -233,11 +244,19 @@ class GS_Divine extends InstanceBase {
 			if (data.length == 40) {
 				if (data[10] == 1) {
 					// opcode 1 (status)
+					let updateIndicators = false
 					this.log('debug', 'status data recevied')
 					const potPos = data[36]
-					this.indicators.set('pot', potPos)
+					if (this.indicators.get('pot') !== potPos) {
+						this.indicators.set('pot', potPos)
+						updateIndicators = true
+					}
 					const deviceVolume = data[37]
-					this.indicators.set('vol', deviceVolume)
+					this.volume = deviceVolume
+					if (this.indicators.get('vol') !== deviceVolume) {
+						this.indicators.set('vol', deviceVolume)
+						updateIndicators = true
+					}
 					const lvl1 = -0.5 * data[0x1c]
 					this.levels.set('01', lvl1)
 					const lvl2 = -0.5 * data[0x1d]
@@ -255,7 +274,10 @@ class GS_Divine extends InstanceBase {
 					const lvlOut = -0.5 * data[0x23]
 					this.levels.set('08', lvlOut)
 					const temp = 0.5 * readUint8AsTwosComplement(data[38]) + 44
-					this.indicators.set('temp', temp)
+					if (this.indicators.get('temp') !== temp) {
+						this.indicators.set('temp', temp)
+						updateIndicators = true
+					}
 					this.volume = deviceVolume
 					this.log(
 						'debug',
@@ -275,7 +297,11 @@ class GS_Divine extends InstanceBase {
 						potPosition: potPos,
 						temp: temp,
 					})
-					this.checkFeedbacks('Meter', 'Indicator')
+					if (updateIndicators) {
+						this.checkFeedbacks('Meter', 'Indicator')
+					} else {
+						this.checkFeedbacks('Meter')
+					}
 				}
 			}
 
@@ -402,6 +428,15 @@ class GS_Divine extends InstanceBase {
 				}
 			})
 		}
+	}
+
+	startTimeOut(timeout = MessageTimeOut) {
+		if (this.timeout) clearTimeout(this.timeout)
+		this.timeout = setTimeout(() => {
+			if (this.status == InstanceStatus.ConnectionFailure) return
+			this.status = InstanceStatus.ConnectionFailure
+			this.updateStatus(this.status, `No data for ${timeout / 1000} seconds`)
+		}, timeout)
 	}
 
 	padLeft(nr, n, str) {
