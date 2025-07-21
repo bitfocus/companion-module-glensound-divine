@@ -11,8 +11,8 @@ export function updatePresets() {
 			rotaryActions: true,
 		},
 		style: {
-			text: 'Volume',
-			size: '18',
+			text: 'Volume\\n$(device:volume)',
+			size: '14',
 			color: combineRgb(255, 255, 255),
 			bgcolor: combineRgb(0, 0, 0),
 		},
@@ -36,7 +36,26 @@ export function updatePresets() {
 				],
 			},
 		],
-		feedbacks: [],
+		feedbacks: [
+			{
+				feedbackId: 'Meter',
+				options: {
+					position: 'bottom',
+					padding: 1,
+					meterVal1: '08',
+				},
+				headline: `Output Meter`,
+			},
+			{
+				feedbackId: 'Indicator',
+				options: {
+					position: 'bottom',
+					padding: 1,
+					indicatorType: `vol`,
+				},
+				headline: `Output Volume`,
+			},
+		],
 	}
 
 	this.setPresetDefinitions(presets)
