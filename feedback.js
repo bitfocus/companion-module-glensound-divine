@@ -156,6 +156,14 @@ export function updateFeedbacks() {
 				choices: indicators,
 				allowCustom: false,
 			},
+			{
+				type: 'colorpicker',
+				label: 'Color',
+				id: 'indicatorColor',
+				default: 0xffffff,
+				enableAlpha: false,
+				returnType: 'number',
+			},
 		],
 		callback: (feedback, _context) => {
 			const position = feedback.options.position
@@ -215,7 +223,7 @@ export function updateFeedbacks() {
 				rectWidth: position == 'left' || position == 'right' ? 6 : 3,
 				rectHeight: position == 'left' || position == 'right' ? 3 : 7,
 				strokeWidth: 1,
-				color: combineRgb(255, 255, 255),
+				color: feedback.options.indicatorColor,
 				fillColor: combineRgb(128, 128, 128),
 				fillOpacity: 255,
 				offsetX: position == 'left' || position == 'right' ? ofsX1 : markerOffset(bLength, val, ofsX1),

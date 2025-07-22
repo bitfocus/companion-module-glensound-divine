@@ -52,6 +52,7 @@ export function updatePresets() {
 					position: 'bottom',
 					padding: 1,
 					indicatorType: `vol`,
+					indicatorColor: 0xffffff,
 				},
 				headline: `Output Volume`,
 			},
