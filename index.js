@@ -19,7 +19,6 @@ function readUint8AsTwosComplement(uint8Value) {
 class GS_Divine extends InstanceBase {
 	constructor(internal) {
 		super(internal)
-
 		this.updateActions = updateActions.bind(this)
 		this.updateFeedbacks = updateFeedbacks.bind(this)
 		this.updatePresets = updatePresets.bind(this)
@@ -100,6 +99,7 @@ class GS_Divine extends InstanceBase {
 		this.config = config
 		this.volume = 0
 		this.unMute = 0
+		this.mixSelected = undefined
 		this.timer = undefined
 		this.channels = [
 			{ id: '01', label: 'Channel 1' },
@@ -319,8 +319,14 @@ class GS_Divine extends InstanceBase {
 								break
 							}
 						}
-						this.log('debug', 'mix select: ' + mixSelect + ' label: ' + mixSelectLabel)
-						this.setVariableValues({ mixSelectValue: mixSelect, mixSelectLabel: mixSelectLabel })
+						if (this.mixSelected !== mixSelect) {
+							this.mixSelected = mixSelect
+							this.log('debug', 'mix select: ' + mixSelect + ' label: ' + mixSelectLabel)
+							this.setVariableValues({
+								mixSelectValue: mixSelect,
+								mixSelectLabel: mixSelect.toString().padStart(2, '0'),
+							})
+						}
 					}
 				}
 			}
@@ -369,6 +375,7 @@ class GS_Divine extends InstanceBase {
 		this.config = config
 		this.levels.clear()
 		this.indicators.clear()
+		this.mixSelected = undefined
 		this.updateActions()
 		this.updateVariables()
 		this.updateFeedbacks()
