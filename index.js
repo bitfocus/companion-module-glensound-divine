@@ -284,8 +284,11 @@ class GS_Divine extends InstanceBase {
 						`Volume: ${deviceVolume}, Levels: ${lvl1}, ${lvl2}, ${lvl3}, ${lvl4}, ${lvl12}, ${lvl34}, ${lvl1234}, ${lvlOut}, Pot Position: ${potPos}, Temperature: ${temp}`,
 					)
 
+					const vol_dB = deviceVolume == 0 ? '-INF' : -63.5 + deviceVolume * 0.5
+
 					this.setVariableValues({
 						volume: deviceVolume,
+						volume_dB: vol_dB,
 						levelInput1: lvl1,
 						levelInput2: lvl2,
 						levelInput3: lvl3,

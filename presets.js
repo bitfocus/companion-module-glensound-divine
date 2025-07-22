@@ -11,7 +11,7 @@ export function updatePresets() {
 			rotaryActions: true,
 		},
 		style: {
-			text: 'Volume\\n$(device:volume)',
+			text: 'Volume\\n$(device:volume_dB) dB',
 			size: '14',
 			color: combineRgb(255, 255, 255),
 			bgcolor: combineRgb(0, 0, 0),

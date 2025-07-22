@@ -35,6 +35,10 @@ export function updateVariables() {
 			variableId: 'volume',
 		},
 		{
+			name: 'Volume (dB)',
+			variableId: 'volume_dB',
+		},
+		{
 			name: 'Level: Input 1',
 			variableId: 'levelInput1',
 		},

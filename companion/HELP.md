@@ -51,7 +51,7 @@ Level Meter advanced feedback
 
 ## Variables
 
-Product Id, Firmware version, Host name, Friendly name, Domain name, Mix selected (value), Mix selected (label), Volume, Input Levels, Output Level, Pot Position, Device Temperature
+Product Id, Firmware version, Host name, Friendly name, Domain name, Mix selected (value), Mix selected (label), Volume, Volume (dB), Input Levels, Output Level, Pot Position, Device Temperature
 
 ## Version 1.0.0
 
@@ -59,7 +59,7 @@ The first release of the module
 
 ## Version 1.1.0
 
-Feat: Input Levels, Output Level, Pot Position, Device Temperature variables
+Feat: Input Levels, Output Level, Volume (dB), Pot Position, Device Temperature variables
 Feat: Indicator, Meter Feedback
 Feat: Fast Meters config option
 Feat: Parse variables for channel in Mix Selection, Mix Enable
