@@ -73,6 +73,7 @@ export function updateActions() {
 				default: 50,
 				range: true,
 				step: 1,
+				tooltip: 'Each step is 0.5dB',
 			},
 		],
 		callback: async ({ options }) => {
@@ -119,13 +120,14 @@ export function updateActions() {
 				min: 1,
 				max: 24,
 				default: 4,
+				tooltip: 'Each step is 0.5dB',
 			},
 		],
 		callback: async ({ options }) => {
 			if (this.volume + options.step_up > 127) {
 				this.volume = 127
 			} else {
-				this.volume = this.volume + options.step_up
+				this.volume += options.step_up
 			}
 			this.log('debug', 'vol: ' + this.volume)
 			const cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
@@ -143,13 +145,14 @@ export function updateActions() {
 				min: 1,
 				max: 24,
 				default: 4,
+				tooltip: 'Each step is 0.5dB',
 			},
 		],
 		callback: async ({ options }) => {
 			if (this.volume - options.step_down < 0) {
 				this.volume = 0
 			} else {
-				this.volume = this.volume - options.step_down
+				this.volume -= options.step_down
 			}
 			this.log('debug', 'vol: ' + this.volume)
 			const cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
