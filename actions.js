@@ -71,10 +71,12 @@ export function updateActions() {
 				min: 0,
 				max: 127,
 				default: 50,
+				range: true,
+				step: 1,
 			},
 		],
 		callback: async ({ options }) => {
-			this.volume = options.volume
+			this.volume = Math.round(options.volume)
 			this.log('debug', 'vol: ' + this.volume)
 			const cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
 			await this.sendMessage(cmd, '03')
