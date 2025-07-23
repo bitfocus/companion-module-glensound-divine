@@ -140,6 +140,8 @@ class GS_Divine extends InstanceBase {
 				if (this.status == status) return
 				this.updateStatus(status, message)
 				this.status = status
+				//if we are setting status to OK send a GetReport message to ensure module state is correct
+				if (status == InstanceStatus.Ok) this.sendMessage('00000000', '0b').catch(() => {})
 			})
 
 			this.socket.on('error', (err) => {
@@ -162,6 +164,8 @@ class GS_Divine extends InstanceBase {
 				if (this.status == InstanceStatus.Ok) return
 				this.status = InstanceStatus.Ok
 				this.updateStatus(this.status)
+				//if we are setting status to OK send a GetReport message to ensure module state is correct
+				this.sendMessage('001000000000', '0b').catch(() => {})
 			})
 		}
 	}
@@ -239,9 +243,7 @@ class GS_Divine extends InstanceBase {
 						domainName: domainName,
 					})
 				}
-			}
-
-			if (data.length == 40) {
+			} else if (data.length == 40) {
 				if (data[10] == 1) {
 					// opcode 1 (status)
 					let updateIndicators = false
@@ -306,9 +308,7 @@ class GS_Divine extends InstanceBase {
 						this.checkFeedbacks('Meter')
 					}
 				}
-			}
-
-			if (data.length == 56) {
+			} else if (data.length == 56) {
 				if (data[10] == 10) {
 					// opcode 10 (report)
 					if (data[16] == 4) {
@@ -332,9 +332,7 @@ class GS_Divine extends InstanceBase {
 						}
 					}
 				}
-			}
-
-			if (data.length == 96) {
+			} else if (data.length == 96) {
 				if (data[10] == 10) {
 					// opcode 10 (report)
 					this.log('debug', 'report data recevied')
@@ -349,9 +347,24 @@ class GS_Divine extends InstanceBase {
 					this.log('debug', 'mix select: ' + mixSelect + ' label: ' + mixSelectLabel)
 					this.setVariableValues({ mixSelectValue: mixSelect, mixSelectLabel: mixSelectLabel })
 				}
-			}
-
-			if (data.length == 24) {
+			} else if (data.length == 132) {
+				if (data[10] == 10) {
+					this.log('debug', 'report data recevied')
+					// Check report data includes report 4
+					if (data[92] == 4) {
+						let mixSelect = data[123]
+						let mixSelectLabel = null
+						for (let i = 0; i < this.channels.length; i++) {
+							if (this.channels[i].id == mixSelect) {
+								mixSelectLabel = this.channels[i].label
+								break
+							}
+						}
+						this.log('debug', 'mix select: ' + mixSelect + ' label: ' + mixSelectLabel)
+						this.setVariableValues({ mixSelectValue: mixSelect, mixSelectLabel: mixSelectLabel })
+					}
+				}
+			} else if (data.length == 24) {
 				if (data[10] == 6) {
 					this.log('debug', 'Config data recevied')
 					this.log(
@@ -422,6 +435,12 @@ class GS_Divine extends InstanceBase {
 			length = '10'
 			message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId
 			this.log('debug', 'Send getconfig: ' + message)
+		} else if (opcode == '0b' || opcode == '0B') {
+			// get report
+			flags = this.config.fastMeters ? '01' : '03'
+			length = '14'
+			message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId + cmd
+			this.log('debug', 'Send getreport: ' + message)
 		}
 
 		if (message !== undefined) {
