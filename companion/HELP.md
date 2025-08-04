@@ -43,11 +43,15 @@ Request update to device info variables
 
 ## Feedbacks
 
-None currently
+**Indicator**
+Position indicator
+
+**Meter**
+Level Meter advanced feedback
 
 ## Variables
 
-Product Id, Firmware version, Host name, Friendly name, Domain name, Mix selected (value), Mix selected (label), Volume
+Product Id, Firmware version, Host name, Friendly name, Domain name, Mix selected (value), Mix selected (label), Volume, Volume (dB), Input Levels, Output Level, Pot Position, Device Temperature
 
 ## Version 1.0.0
 
@@ -55,5 +59,11 @@ The first release of the module
 
 ## Version 1.1.0
 
+Feat: Input Levels, Output Level, Volume (dB), Pot Position, Device Temperature variables
+Feat: Indicator, Meter Feedback
+Feat: Fast Meters config option
+Feat: Parse variables for channel in Mix Selection, Mix Enable
+Fix: Module init and device polling
 Allow connection via hostname
+Minor fixes
 Update dependencies

@@ -1,6 +1,6 @@
 // Glensound Divine
 
-import { InstanceBase, Regex, runEntrypoint, UDPHelper } from '@companion-module/base'
+import { InstanceBase, InstanceStatus, Regex, runEntrypoint, UDPHelper } from '@companion-module/base'
 import { updateActions } from './actions.js'
 import { updateFeedbacks } from './feedback.js'
 import { updatePresets } from './presets.js'
@@ -8,15 +8,23 @@ import { updateVariables } from './variables.js'
 import { upgradeScripts } from './upgrades.js'
 import PQueue from 'p-queue'
 const queue = new PQueue({ concurrency: 1, interval: 5, intervalCap: 1 })
+const MessageTimeOut = 10000
+
+function readUint8AsTwosComplement(uint8Value) {
+	const uint8Array = new Uint8Array([uint8Value])
+	const int8Array = new Int8Array(uint8Array.buffer)
+	return Number(int8Array[0])
+}
 
 class GS_Divine extends InstanceBase {
 	constructor(internal) {
 		super(internal)
-
 		this.updateActions = updateActions.bind(this)
 		this.updateFeedbacks = updateFeedbacks.bind(this)
 		this.updatePresets = updatePresets.bind(this)
 		this.updateVariables = updateVariables.bind(this)
+		this.status = InstanceStatus.Connecting
+		this.updateStatus(this.status)
 	}
 
 	getConfigFields() {
@@ -42,7 +50,7 @@ class GS_Divine extends InstanceBase {
 				label: 'Device Port',
 				width: 6,
 				default: '41161',
-				regex: Regex.Port,
+				regex: Regex.PORT,
 			},
 			{
 				type: 'static-text',
@@ -58,13 +66,21 @@ class GS_Divine extends InstanceBase {
 				label: 'Controller ID',
 				width: 6,
 				default: '42495446',
-				regex: '/^[abcdefABCDEF0123456789]*$/',
+				regex: '/^[abcdefABCDEF0123456789]{8}$/',
+			},
+			{
+				type: 'checkbox',
+				id: 'fastMeters',
+				label: 'Fast Meters',
+				width: 6,
+				default: false,
 			},
 		]
 	}
 
 	async destroy() {
 		queue.clear()
+		if (this.timeout) clearTimeout(this.timeout)
 		if (this.timer) {
 			clearInterval(this.timer)
 			delete this.timer
@@ -83,6 +99,7 @@ class GS_Divine extends InstanceBase {
 		this.config = config
 		this.volume = 0
 		this.unMute = 0
+		this.mixSelected = undefined
 		this.timer = undefined
 		this.channels = [
 			{ id: '01', label: 'Channel 1' },
@@ -93,6 +110,8 @@ class GS_Divine extends InstanceBase {
 			{ id: '06', label: 'Channels 3-4' },
 			{ id: '07', label: 'Channels 1-4' },
 		]
+		this.levels = new Map()
+		this.indicators = new Map()
 
 		console.log(this.config)
 
@@ -118,7 +137,11 @@ class GS_Divine extends InstanceBase {
 			this.socket = new UDPHelper(this.config.host, this.config.port)
 
 			this.socket.on('status_change', (status, message) => {
+				if (this.status == status) return
 				this.updateStatus(status, message)
+				this.status = status
+				//if we are setting status to OK send a GetReport message to ensure module state is correct
+				if (status == InstanceStatus.Ok) this.sendMessage('00000000', '0b').catch(() => {})
 			})
 
 			this.socket.on('error', (err) => {
@@ -126,16 +149,23 @@ class GS_Divine extends InstanceBase {
 			})
 
 			this.socket.on('listening', async () => {
-				this.log('info', 'Connected')
+				this.log('info', 'Listening')
 				// get info
 				await this.sendMessage(null, '05')
 				// poll every 5 seconds
 				this.timer = setInterval(this.dataPoller.bind(this), 5000)
+				this.startTimeOut()
 			})
 
 			this.socket.on('data', (chunk) => {
 				this.log('debug', 'Data received')
 				this.processDeviceData(chunk)
+				this.startTimeOut()
+				if (this.status == InstanceStatus.Ok) return
+				this.status = InstanceStatus.Ok
+				this.updateStatus(this.status)
+				//if we are setting status to OK send a GetReport message to ensure module state is correct
+				this.sendMessage('001000000000', '0b').catch(() => {})
 			})
 		}
 	}
@@ -166,100 +196,181 @@ class GS_Divine extends InstanceBase {
 
 					// Firmware
 					// var firmware = data[17].toString(16).padStart(2, '0') + data[16].toString(16).padStart(2, '0')
-					var firmware = data[17] + ' ' + data[16]
+					const firmware = data[17] + ' ' + data[16]
 					this.log('debug', 'firmware ' + firmware)
-					this.setVariableValues({ firmware: firmware })
-
+					let productId
 					// Product Id
 					if (data[24] == 49 && data[25] == 0) {
-						var productId = '49 (Divine)'
+						productId = '49 (Divine)'
 					} else {
-						var productId = 'Unknown'
+						productId = 'Unknown'
 					}
 					this.log('debug', 'productId ' + productId)
-					this.setVariableValues({ productId: productId })
 
 					// Host Name
-					var hostName = ''
-					for (var j = 40; j < 72; j++) {
+					let hostName = ''
+					for (let j = 40; j < 72; j++) {
 						// this.log('debug', j + ':' + data[j])
 						if (data[j] != 0) {
 							hostName = hostName + String.fromCharCode(data[j])
 						}
 					}
 					this.log('debug', 'hostName ' + hostName)
-					this.setVariableValues({ hostName: hostName })
 
 					// Friendly Name
-					var friendlyName = ''
-					for (var j = 72; j < 104; j++) {
+					let friendlyName = ''
+					for (let j = 72; j < 104; j++) {
 						// this.log('debug', j + ':' + data[j])
 						if (data[j] != 0) {
 							friendlyName = friendlyName + String.fromCharCode(data[j])
 						}
 					}
 					this.log('debug', 'friendlyName ' + friendlyName)
-					this.setVariableValues({ friendlyName: friendlyName })
-
 					// Domain Name
-					var domainName = ''
-					for (var j = 104; j < 136; j++) {
+					let domainName = ''
+					for (let j = 104; j < 136; j++) {
 						// this.log('debug', j + ':' + data[j])
 						if (data[j] != 0) {
 							domainName = domainName + String.fromCharCode(data[j])
 						}
 					}
 					this.log('debug', 'domainName ' + domainName)
-					this.setVariableValues({ domainName: domainName })
+					this.setVariableValues({
+						firmware: firmware,
+						productId: productId,
+						hostName: hostName,
+						friendlyName: friendlyName,
+						domainName: domainName,
+					})
 				}
-			}
-
-			if (data.length == 40) {
+			} else if (data.length == 40) {
 				if (data[10] == 1) {
 					// opcode 1 (status)
+					let updateIndicators = false
 					this.log('debug', 'status data recevied')
-					var deviceVolume = data[37]
-					this.log('debug', 'volume: ' + deviceVolume)
-					this.setVariableValues({ volume: deviceVolume })
-				}
-			}
+					const potPos = data[36]
+					if (this.indicators.get('pot') !== potPos) {
+						this.indicators.set('pot', potPos)
+						updateIndicators = true
+					}
+					const deviceVolume = data[37]
+					this.volume = deviceVolume
+					if (this.indicators.get('vol') !== deviceVolume) {
+						this.indicators.set('vol', deviceVolume)
+						updateIndicators = true
+					}
+					const lvl1 = -0.5 * data[0x1c]
+					this.levels.set('01', lvl1)
+					const lvl2 = -0.5 * data[0x1d]
+					this.levels.set('02', lvl2)
+					const lvl3 = -0.5 * data[0x1e]
+					this.levels.set('03', lvl3)
+					const lvl4 = -0.5 * data[0x1f]
+					this.levels.set('04', lvl4)
+					const lvl12 = -0.5 * data[0x20]
+					this.levels.set('05', lvl12)
+					const lvl34 = -0.5 * data[0x21]
+					this.levels.set('06', lvl34)
+					const lvl1234 = -0.5 * data[0x22]
+					this.levels.set('07', lvl1234)
+					const lvlOut = -0.5 * data[0x23]
+					this.levels.set('08', lvlOut)
+					const temp = 0.5 * readUint8AsTwosComplement(data[38]) + 44
+					if (this.indicators.get('temp') !== temp) {
+						this.indicators.set('temp', temp)
+						updateIndicators = true
+					}
+					this.volume = deviceVolume
+					this.log(
+						'debug',
+						`Volume: ${deviceVolume}, Levels: ${lvl1}, ${lvl2}, ${lvl3}, ${lvl4}, ${lvl12}, ${lvl34}, ${lvl1234}, ${lvlOut}, Pot Position: ${potPos}, Temperature: ${temp}`,
+					)
 
-			if (data.length == 56) {
+					const vol_dB = deviceVolume == 0 ? '-INF' : -63.5 + deviceVolume * 0.5
+
+					this.setVariableValues({
+						volume: deviceVolume,
+						volume_dB: vol_dB,
+						levelInput1: lvl1,
+						levelInput2: lvl2,
+						levelInput3: lvl3,
+						levelInput4: lvl4,
+						levelInput12: lvl12,
+						levelInput34: lvl34,
+						levelInput1234: lvl1234,
+						levelOutput: lvlOut,
+						potPosition: potPos,
+						temp: temp,
+					})
+					if (updateIndicators) {
+						this.checkFeedbacks('Meter', 'Indicator')
+					} else {
+						this.checkFeedbacks('Meter')
+					}
+				}
+			} else if (data.length == 56) {
 				if (data[10] == 10) {
 					// opcode 10 (report)
 					if (data[16] == 4) {
 						// divine report (type 4)
 						this.log('debug', 'divine report data recevied')
-						var mixSelect = data[47]
-						var mixSelectLabel = null
-						for (var i = 0; i < this.channels.length; i++) {
+						let mixSelect = data[47]
+						let mixSelectLabel = null
+						for (let i = 0; i < this.channels.length; i++) {
 							if (this.channels[i].id == mixSelect) {
 								mixSelectLabel = this.channels[i].label
 								break
 							}
 						}
-						this.log('debug', 'mix select: ' + mixSelect + ' label: ' + mixSelectLabel)
-						this.setVariableValues({ mixSelectLabel: mixSelectLabel })
-						this.setVariableValues({ mixSelectValue: mixSelect })
+						if (this.mixSelected !== mixSelect) {
+							this.mixSelected = mixSelect
+							this.log('debug', 'mix select: ' + mixSelect + ' label: ' + mixSelectLabel)
+							this.setVariableValues({
+								mixSelectValue: mixSelect,
+								mixSelectLabel: mixSelect.toString().padStart(2, '0'),
+							})
+						}
 					}
 				}
-			}
-
-			if (data.length == 96) {
+			} else if (data.length == 96) {
 				if (data[10] == 10) {
 					// opcode 10 (report)
 					this.log('debug', 'report data recevied')
-					var mixSelect = data[87]
-					var mixSelectLabel = null
-					for (var i = 0; i < this.channels.length; i++) {
+					let mixSelect = data[87]
+					let mixSelectLabel = null
+					for (let i = 0; i < this.channels.length; i++) {
 						if (this.channels[i].id == mixSelect) {
 							mixSelectLabel = this.channels[i].label
 							break
 						}
 					}
 					this.log('debug', 'mix select: ' + mixSelect + ' label: ' + mixSelectLabel)
-					this.setVariableValues({ mixSelectLabel: mixSelectLabel })
-					this.setVariableValues({ mixSelectValue: mixSelect })
+					this.setVariableValues({ mixSelectValue: mixSelect, mixSelectLabel: mixSelectLabel })
+				}
+			} else if (data.length == 132) {
+				if (data[10] == 10) {
+					this.log('debug', 'report data recevied')
+					// Check report data includes report 4
+					if (data[92] == 4) {
+						let mixSelect = data[123]
+						let mixSelectLabel = null
+						for (let i = 0; i < this.channels.length; i++) {
+							if (this.channels[i].id == mixSelect) {
+								mixSelectLabel = this.channels[i].label
+								break
+							}
+						}
+						this.log('debug', 'mix select: ' + mixSelect + ' label: ' + mixSelectLabel)
+						this.setVariableValues({ mixSelectValue: mixSelect, mixSelectLabel: mixSelectLabel })
+					}
+				}
+			} else if (data.length == 24) {
+				if (data[10] == 6) {
+					this.log('debug', 'Config data recevied')
+					this.log(
+						'info',
+						`Sequence #: ${data[12]}, Device ID: ${data[13].toString(16) + data[14].toString(16) + data[15].toString(16)}\nStatus IP (if in shared mode): ${data[16]}.${data[17]}.${data[18]}.${data[19]} Port (if in shared mode): ${data[20] * 256 + data[21]}\nExclusive: ${Boolean(data[11] & 1)}, Password Valid: ${Boolean(data[11] & 4)}, Access Granted: ${Boolean(data[11] & 8)}`,
+					)
 				}
 			}
 		} else {
@@ -273,12 +384,14 @@ class GS_Divine extends InstanceBase {
 		process.title = this.label
 		let resetConnection = false
 
-		if (this.config.host != config.host) {
+		if (this.config.host != config.host || this.config.port != config.port) {
 			resetConnection = true
 		}
 
 		this.config = config
-
+		this.levels.clear()
+		this.indicators.clear()
+		this.mixSelected = undefined
 		this.updateActions()
 		this.updateVariables()
 		this.updateFeedbacks()
@@ -302,31 +415,37 @@ class GS_Divine extends InstanceBase {
 
 		const gsHeader = '4753204374726C00' // GS Ctrl
 		const multipacket = '00'
-
+		let flags, length, message
 		if (opcode == '03') {
 			// set control
-			var flags = '03'
+			flags = this.config.fastMeters ? '01' : '03'
 			// exclusive = true, meters = false
-			var length = (16 + cmd.length / 2).toString(16).padStart(2, '0')
-			var message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId + cmd
+			length = (16 + cmd.length / 2).toString(16).padStart(2, '0')
+			message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId + cmd
 			this.log('debug', 'Send control: ' + message)
 		} else if (opcode == '05') {
 			// get info
-			var flags = '00'
-			var length = '10'
-			var message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId
+			flags = '00'
+			length = '10'
+			message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId
 			this.log('debug', 'Send getinfo: ' + message)
 		} else if (opcode == '07') {
 			// get config
-			var flags = '03'
-			var length = '10'
-			var message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId
+			flags = this.config.fastMeters ? '01' : '03'
+			length = '10'
+			message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId
 			this.log('debug', 'Send getconfig: ' + message)
+		} else if (opcode == '0b' || opcode == '0B') {
+			// get report
+			flags = this.config.fastMeters ? '01' : '03'
+			length = '14'
+			message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId + cmd
+			this.log('debug', 'Send getreport: ' + message)
 		}
 
 		if (message !== undefined) {
 			await queue.add(async () => {
-				if (this.socket !== undefined) {
+				if (this.socket !== undefined && !this.socket.isDestroyed) {
 					await this.socket
 						.send(this.hexStringToBuffer(message))
 						.then(() => {})
@@ -340,14 +459,23 @@ class GS_Divine extends InstanceBase {
 		}
 	}
 
+	startTimeOut(timeout = MessageTimeOut) {
+		if (this.timeout) clearTimeout(this.timeout)
+		this.timeout = setTimeout(() => {
+			if (this.status == InstanceStatus.ConnectionFailure) return
+			this.status = InstanceStatus.ConnectionFailure
+			this.updateStatus(this.status, `No data for ${timeout / 1000} seconds`)
+		}, timeout)
+	}
+
 	padLeft(nr, n, str) {
 		return Array(n - String(nr).length + 1).join(str || '0') + nr
 	}
 
 	asciiToHex(str) {
-		var arr1 = []
-		for (var n = 0, l = str.length; n < l; n++) {
-			var hex = Number(str.charCodeAt(n)).toString(16)
+		const arr1 = []
+		for (let n = 0, l = str.length; n < l; n++) {
+			const hex = Number(str.charCodeAt(n)).toString(16)
 			arr1.push(hex)
 		}
 		return arr1.join('')
@@ -359,11 +487,11 @@ class GS_Divine extends InstanceBase {
 	}
 
 	async dataPoller() {
-		if (this.socket !== undefined) {
+		if (this.socket !== undefined && !this.socket.isDestroyed) {
 			// send getConfig poll request
 			await this.sendMessage(null, '07')
 		} else {
-			this.log('debug', 'dataPoller - Socket not connected')
+			this.log('debug', 'dataPoller - Socket not open')
 		}
 	}
 }

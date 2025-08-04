@@ -8,13 +8,20 @@ export function updateActions() {
 				type: 'dropdown',
 				label: 'Channel',
 				id: 'mix_selection',
-				default: '01',
+				default: this.channels[0].id,
 				choices: this.channels,
+				allowCustom: true,
+				tooltip: `Variables must return a value between 01 and 07`,
 			},
 		],
-		callback: async ({ options }) => {
-			this.log('debug', 'mix select: ' + options.mix_selection)
-			var cmd = '05' + options.mix_selection + '0000'
+		callback: async ({ options }, context) => {
+			const mixSel = (await context.parseVariablesInString(options.mix_selection)).padStart(2, '0')
+			if (!this.channels.map((channel) => channel.id).includes(mixSel)) {
+				this.log('warn', `Invalid channel selection: ${mixSel}, value should be 01 - 07`)
+				return
+			}
+			this.log('debug', 'mix select: ' + mixSel)
+			const cmd = '05' + mixSel + '0000'
 			await this.sendMessage(cmd, '03')
 		},
 	}
@@ -26,8 +33,10 @@ export function updateActions() {
 				type: 'dropdown',
 				label: 'Channel',
 				id: 'mix_enable',
-				default: '01',
+				default: this.channels[0].id,
 				choices: this.channels,
+				allowCustom: true,
+				tooltip: `Variables must return a value between 01 and 07`,
 			},
 			{
 				type: 'dropdown',
@@ -40,9 +49,14 @@ export function updateActions() {
 				],
 			},
 		],
-		callback: async ({ options }) => {
-			this.log('debug', 'mix enable: ' + options.mix_enable + ':' + options.mix_enable_mode)
-			var cmd = '06' + options.mix_enable + options.mix_enable_mode + '00'
+		callback: async ({ options }, context) => {
+			const mixEnable = (await context.parseVariablesInString(options.mix_enable)).padStart(2, '0')
+			if (!this.channels.map((channel) => channel.id).includes(mixEnable)) {
+				this.log('warn', `Invalid channel selection: ${mixEnable}, value should be 01 - 07`)
+				return
+			}
+			this.log('debug', 'mix enable: ' + mixEnable + ':' + options.mix_enable_mode)
+			const cmd = '06' + mixEnable + options.mix_enable_mode + '00'
 			await this.sendMessage(cmd, '03')
 		},
 	}
@@ -57,12 +71,15 @@ export function updateActions() {
 				min: 0,
 				max: 127,
 				default: 50,
+				range: true,
+				step: 1,
+				tooltip: 'Each step is 0.5dB',
 			},
 		],
 		callback: async ({ options }) => {
-			this.volume = options.volume
+			this.volume = Math.round(options.volume)
 			this.log('debug', 'vol: ' + this.volume)
-			var cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
+			const cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
 			await this.sendMessage(cmd, '03')
 		},
 	}
@@ -77,7 +94,7 @@ export function updateActions() {
 			}
 			this.volume = 0
 			this.log('debug', 'mute: ' + this.volume)
-			var cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
+			const cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
 			await this.sendMessage(cmd, '03')
 		},
 	}
@@ -88,7 +105,7 @@ export function updateActions() {
 		callback: async () => {
 			this.volume = this.unMute
 			this.log('debug', 'unmute: ' + this.volume)
-			var cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
+			const cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
 			await this.sendMessage(cmd, '03')
 		},
 	}
@@ -103,16 +120,17 @@ export function updateActions() {
 				min: 1,
 				max: 24,
 				default: 4,
+				tooltip: 'Each step is 0.5dB',
 			},
 		],
 		callback: async ({ options }) => {
 			if (this.volume + options.step_up > 127) {
 				this.volume = 127
 			} else {
-				this.volume = this.volume + options.step_up
+				this.volume += options.step_up
 			}
 			this.log('debug', 'vol: ' + this.volume)
-			var cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
+			const cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
 			await this.sendMessage(cmd, '03')
 		},
 	}
@@ -127,16 +145,17 @@ export function updateActions() {
 				min: 1,
 				max: 24,
 				default: 4,
+				tooltip: 'Each step is 0.5dB',
 			},
 		],
 		callback: async ({ options }) => {
 			if (this.volume - options.step_down < 0) {
 				this.volume = 0
 			} else {
-				this.volume = this.volume - options.step_down
+				this.volume -= options.step_down
 			}
 			this.log('debug', 'vol: ' + this.volume)
-			var cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
+			const cmd = '0E' + this.volume.toString(16).padStart(2, '0') + '0000'
 			await this.sendMessage(cmd, '03')
 		},
 	}
