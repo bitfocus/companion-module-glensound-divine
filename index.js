@@ -1,34 +1,78 @@
 // Glensound Divine
 
-import { InstanceBase, InstanceStatus, Regex, runEntrypoint, UDPHelper } from '@companion-module/base'
+import { InstanceBase, InstanceStatus, Regex, UDPHelper } from '@companion-module/base'
 import { updateActions } from './actions.js'
 import { updateFeedbacks } from './feedback.js'
 import { updatePresets } from './presets.js'
 import { updateVariables } from './variables.js'
-import { upgradeScripts } from './upgrades.js'
+import { UpgradeScripts } from './upgrades.js'
+import { channelChoices } from './choices.js'
 import PQueue from 'p-queue'
+
+/**
+ * @import { DropdownChoice, SomeCompanionConfigField } from '@companion-module/base'
+ * @import { ModuleConfig, ModuleSchema } from './types.js'
+ */
+
 const queue = new PQueue({ concurrency: 1, interval: 5, intervalCap: 1 })
 const MessageTimeOut = 10000
 
+/**
+ * Reinterpret an unsigned byte as a signed (two's complement) value.
+ * @param {number} uint8Value
+ * @returns {number}
+ */
 function readUint8AsTwosComplement(uint8Value) {
 	const uint8Array = new Uint8Array([uint8Value])
 	const int8Array = new Int8Array(uint8Array.buffer)
 	return Number(int8Array[0])
 }
 
-class GS_Divine extends InstanceBase {
+export { UpgradeScripts }
+
+/**
+ * @extends {InstanceBase<ModuleSchema>}
+ */
+export default class GS_Divine extends InstanceBase {
+	/**
+	 * The connection config. Assigned in `init()`, which the host calls before anything else.
+	 * @type {ModuleConfig}
+	 */
+	config
+	/** Last known device volume, 0 - 127 @type {number} */
+	volume = 0
+	/** Volume to restore when unmuting @type {number} */
+	unMute = 0
+	/** The currently selected mix, as reported by the device @type {number | undefined} */
+	mixSelected = undefined
+	/** The channels available for mix selection @type {DropdownChoice[]} */
+	channels = channelChoices
+	/** Meter levels in dB, keyed by channel id @type {Map<string, number>} */
+	levels = new Map()
+	/** Indicator values, keyed by indicator id @type {Map<string, number>} */
+	indicators = new Map()
+	/** @type {UDPHelper | undefined} */
+	socket = undefined
+	/** Poll timer @type {NodeJS.Timeout | undefined} */
+	timer = undefined
+	/** Fires when no data has been received for a while @type {NodeJS.Timeout | undefined} */
+	timeout = undefined
+	/** The last status reported to Companion @type {InstanceStatus} */
+	status = InstanceStatus.Connecting
+
+	/**
+	 * @param {unknown} internal
+	 */
 	constructor(internal) {
 		super(internal)
-		this.updateActions = updateActions.bind(this)
-		this.updateFeedbacks = updateFeedbacks.bind(this)
-		this.updatePresets = updatePresets.bind(this)
-		this.updateVariables = updateVariables.bind(this)
 		this.status = InstanceStatus.Connecting
 		this.updateStatus(this.status)
 	}
 
+	/**
+	 * @returns {SomeCompanionConfigField[]}
+	 */
 	getConfigFields() {
-		console.log('config fields')
 		return [
 			{
 				type: 'static-text',
@@ -54,7 +98,7 @@ class GS_Divine extends InstanceBase {
 			},
 			{
 				type: 'static-text',
-				id: 'info',
+				id: 'controllerIdInfo',
 				width: 6,
 				label: 'Controller ID',
 				value:
@@ -78,63 +122,59 @@ class GS_Divine extends InstanceBase {
 		]
 	}
 
+	/**
+	 * @returns {Promise<void>}
+	 */
 	async destroy() {
 		queue.clear()
 		if (this.timeout) clearTimeout(this.timeout)
 		if (this.timer) {
 			clearInterval(this.timer)
-			delete this.timer
+			this.timer = undefined
 		}
 
 		if (this.socket !== undefined) {
 			this.socket.destroy()
+			this.socket = undefined
 		}
-
-		console.log('destroy', this.id)
 	}
 
+	/**
+	 * @param {ModuleConfig} config
+	 * @returns {Promise<void>}
+	 */
 	async init(config) {
-		console.log('init GS')
-		process.title = this.label
 		this.config = config
 		this.volume = 0
 		this.unMute = 0
 		this.mixSelected = undefined
 		this.timer = undefined
-		this.channels = [
-			{ id: '01', label: 'Channel 1' },
-			{ id: '02', label: 'Channel 2' },
-			{ id: '03', label: 'Channel 3' },
-			{ id: '04', label: 'Channel 4' },
-			{ id: '05', label: 'Channels 1-2' },
-			{ id: '06', label: 'Channels 3-4' },
-			{ id: '07', label: 'Channels 1-4' },
-		]
+		this.channels = channelChoices
 		this.levels = new Map()
 		this.indicators = new Map()
 
-		console.log(this.config)
-
-		this.updateActions()
-		this.updateVariables()
-		this.updateFeedbacks()
-		this.updatePresets()
+		updateActions(this)
+		updateVariables(this)
+		updateFeedbacks(this)
+		updatePresets(this)
 
 		this.initUDP()
 	}
 
+	/**
+	 * (Re)create the UDP socket and wire up its event handlers.
+	 * @returns {void}
+	 */
 	initUDP() {
-		console.log('init_UDP ' + this.config.host + ':' + this.config.port)
-
-		this.receiveBuffer = ''
+		this.log('debug', `initUDP ${this.config.host}:${this.config.port}`)
 
 		if (this.socket !== undefined) {
 			this.socket.destroy()
-			delete this.socket
+			this.socket = undefined
 		}
 
 		if (this.config.host) {
-			this.socket = new UDPHelper(this.config.host, this.config.port)
+			this.socket = new UDPHelper(this.config.host, Number(this.config.port))
 
 			this.socket.on('status_change', (status, message) => {
 				if (this.status == status) return
@@ -170,6 +210,11 @@ class GS_Divine extends InstanceBase {
 		}
 	}
 
+	/**
+	 * Decode a datagram from the device and update variables/feedbacks accordingly.
+	 * @param {Buffer | undefined} data
+	 * @returns {void}
+	 */
 	processDeviceData(data) {
 		this.log('debug', 'processDeviceData')
 
@@ -186,8 +231,7 @@ class GS_Divine extends InstanceBase {
 		// data = Array.from([71,83,32,67,116,114,108,0,56,0,10,0,248,0,0,0,4,51,9,0,22,0,0,0,2,0,0,0,0,0,5,7,40,0,0,0,0,0,0,0,6,2,2,0,0,1,7,7,254,0,50,0,0,0,0,0])
 
 		if (data != undefined) {
-			this.log('debug', 'length: ' + data.length + ' type: ' + typeof data)
-			this.log('debug', data)
+			this.log('debug', `length: ${data.length} data: ${Buffer.from(data).toString('hex')}`)
 
 			if (data.length == 144) {
 				if (data[10] == 4) {
@@ -378,10 +422,12 @@ class GS_Divine extends InstanceBase {
 		}
 	}
 
+	/**
+	 * @param {ModuleConfig} config
+	 * @returns {Promise<void>}
+	 */
 	async configUpdated(config) {
 		queue.clear()
-		console.log('configUpdated')
-		process.title = this.label
 		let resetConnection = false
 
 		if (this.config.host != config.host || this.config.port != config.port) {
@@ -392,10 +438,10 @@ class GS_Divine extends InstanceBase {
 		this.levels.clear()
 		this.indicators.clear()
 		this.mixSelected = undefined
-		this.updateActions()
-		this.updateVariables()
-		this.updateFeedbacks()
-		this.updatePresets()
+		updateActions(this)
+		updateVariables(this)
+		updateFeedbacks(this)
+		updatePresets(this)
 
 		if (resetConnection === true || this.socket === undefined) {
 			this.initUDP()
@@ -405,6 +451,12 @@ class GS_Divine extends InstanceBase {
 		this.sendMessage(null, '05')
 	}
 
+	/**
+	 * Build and queue a message to the device.
+	 * @param {string | null} cmd Command payload as a hex string, or null when the opcode takes none
+	 * @param {string} opcode Two character hex opcode
+	 * @returns {Promise<void>}
+	 */
 	async sendMessage(cmd, opcode) {
 		if (this.config.controllerId.length != 8) {
 			this.log('warn', 'Invalid Controller Id! Please check module settings.')
@@ -415,9 +467,18 @@ class GS_Divine extends InstanceBase {
 
 		const gsHeader = '4753204374726C00' // GS Ctrl
 		const multipacket = '00'
-		let flags, length, message
+		/** @type {string | undefined} */
+		let flags
+		/** @type {string | undefined} */
+		let length
+		/** @type {string | undefined} */
+		let message
 		if (opcode == '03') {
 			// set control
+			if (cmd === null) {
+				this.log('warn', `Opcode ${opcode} requires a command payload`)
+				return
+			}
 			flags = this.config.fastMeters ? '01' : '03'
 			// exclusive = true, meters = false
 			length = (16 + cmd.length / 2).toString(16).padStart(2, '0')
@@ -437,6 +498,10 @@ class GS_Divine extends InstanceBase {
 			this.log('debug', 'Send getconfig: ' + message)
 		} else if (opcode == '0b' || opcode == '0B') {
 			// get report
+			if (cmd === null) {
+				this.log('warn', `Opcode ${opcode} requires a command payload`)
+				return
+			}
 			flags = this.config.fastMeters ? '01' : '03'
 			length = '14'
 			message = gsHeader + length + multipacket + opcode + flags + this.config.controllerId + cmd
@@ -446,12 +511,12 @@ class GS_Divine extends InstanceBase {
 		if (message !== undefined) {
 			await queue.add(async () => {
 				if (this.socket !== undefined && !this.socket.isDestroyed) {
-					await this.socket
-						.send(this.hexStringToBuffer(message))
-						.then(() => {})
-						.catch((error) => {
-							this.log('warn', `Message send failed!\nMessage: ${message}\nError: ${JSON.stringify(error)}`)
-						})
+					try {
+						await this.socket.sendAsync(this.hexStringToBuffer(message))
+					} catch (error) {
+						const reason = error instanceof Error ? error.message : String(error)
+						this.log('warn', `Message send failed!\nMessage: ${message}\nError: ${reason}`)
+					}
 				} else {
 					this.log('warn', 'Socket not connected')
 				}
@@ -459,6 +524,11 @@ class GS_Divine extends InstanceBase {
 		}
 	}
 
+	/**
+	 * Restart the no-data timeout.
+	 * @param {number} [timeout] Milliseconds to wait before reporting a connection failure
+	 * @returns {void}
+	 */
 	startTimeOut(timeout = MessageTimeOut) {
 		if (this.timeout) clearTimeout(this.timeout)
 		this.timeout = setTimeout(() => {
@@ -468,10 +538,20 @@ class GS_Divine extends InstanceBase {
 		}, timeout)
 	}
 
+	/**
+	 * @param {string | number} nr
+	 * @param {number} n Total desired length
+	 * @param {string} [str] Padding character, defaults to '0'
+	 * @returns {string}
+	 */
 	padLeft(nr, n, str) {
 		return Array(n - String(nr).length + 1).join(str || '0') + nr
 	}
 
+	/**
+	 * @param {string} str
+	 * @returns {string}
+	 */
 	asciiToHex(str) {
 		const arr1 = []
 		for (let n = 0, l = str.length; n < l; n++) {
@@ -481,11 +561,19 @@ class GS_Divine extends InstanceBase {
 		return arr1.join('')
 	}
 
+	/**
+	 * @param {string} str
+	 * @returns {Buffer}
+	 */
 	hexStringToBuffer(str) {
 		// this.log('debug', 'to buffer > ' + str)
 		return Buffer.from(str, 'hex')
 	}
 
+	/**
+	 * Periodic poll, asking the device for its current config.
+	 * @returns {Promise<void>}
+	 */
 	async dataPoller() {
 		if (this.socket !== undefined && !this.socket.isDestroyed) {
 			// send getConfig poll request
@@ -495,5 +583,3 @@ class GS_Divine extends InstanceBase {
 		}
 	}
 }
-
-runEntrypoint(GS_Divine, upgradeScripts)

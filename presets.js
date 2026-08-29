@@ -1,15 +1,32 @@
 import { combineRgb } from '@companion-module/base'
 
-export function updatePresets() {
-	let presets = {}
+/**
+ * @import { CompanionPresetDefinitions, CompanionPresetSection } from '@companion-module/base'
+ * @import { ModuleSchema } from './types.js'
+ * @import GS_Divine from './index.js'
+ */
+
+/**
+ * Declare the presets this module offers.
+ * @param {GS_Divine} self
+ * @returns {void}
+ */
+export function updatePresets(self) {
+	/** @type {CompanionPresetSection<ModuleSchema>[]} */
+	const structure = [
+		{
+			id: 'volume',
+			name: 'Volume',
+			definitions: ['VolumeKnob'],
+		},
+	]
+
+	/** @type {CompanionPresetDefinitions<ModuleSchema>} */
+	const presets = {}
 
 	presets['VolumeKnob'] = {
-		type: 'button',
-		category: 'Volume',
+		type: 'simple',
 		name: 'Volume Knob',
-		options: {
-			rotaryActions: true,
-		},
 		style: {
 			text: 'Volume\\n$(device:volume_dB) dB',
 			size: '14',
@@ -18,6 +35,8 @@ export function updatePresets() {
 		},
 		steps: [
 			{
+				down: [],
+				up: [],
 				rotate_left: [
 					{
 						actionId: 'dec_volume',
@@ -59,5 +78,5 @@ export function updatePresets() {
 		],
 	}
 
-	this.setPresetDefinitions(presets)
+	self.setPresetDefinitions(structure, presets)
 }
